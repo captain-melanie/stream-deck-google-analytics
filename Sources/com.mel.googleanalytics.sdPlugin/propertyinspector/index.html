@@ -1,0 +1,180 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+	<title>com.mel.googleanalytics PI</title>
+	<meta charset="utf-8" />
+	<link rel="stylesheet" href="css/sdpi.css">
+	<script src="common.js"></script>
+	<script src="../js/jquery.js"></script>
+</head>
+
+<body>
+	<div class="sdpi-wrapper">
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Profile ID</div>
+			<input class="sdpi-item-value" id="profile-id" placeholder="Google Analytics profile ID">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Refresh Token</div>
+			<input class="sdpi-item-value" id="refresh-token" placeholder="Refresh token" type="password">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Client ID</div>
+			<input class="sdpi-item-value" id="client-id" placeholder="Client ID" type="password">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Client Secret</div>
+			<input class="sdpi-item-value" id="client-secret" placeholder="Client Secret" type="password">
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Set Interval</div>
+			<input class="sdpi-item-value" id="set-interval" value="10" placeholder="Fetch a quote every [INTERVAL] seconds">
+			<div class="sdpi-item-label">seconds</div>
+		</div>
+
+		<div class="sdpi-item">
+			<div class="sdpi-item-label">Set Metric</div>
+			<select class="sdpi-item-value select" id="set-metric" required>
+				<option value="activeUsers">Active Users</option>
+			</select>
+		</div>
+
+		<!-- background -->
+
+		<div class="message"></div>
+
+		<!-- Start/Stop -->
+		<div class="sdpi-item">
+			<button onclick="startRequest('startRequest')" class="sdpi-item-value">Start</button>
+			<button onclick="stopRequest('stopRequest')" class="sdpi-item-value">Stop</button>
+		</div>
+	</div>
+
+	<script>
+
+		var uuid,
+			actionInfo,
+			ctx;
+
+		const MESSAGE_TYPE = Object.freeze({
+			VALID: 'valid',
+			INVALID: 'invalid',
+			COUNT_DOWN: 'count down',
+		});
+		const TO_SECOND = 1000;
+		let timers = [], interval;
+
+		$SD.on('connected', (jsonObj) => connected(jsonObj));
+		$SD.on('sendToPropertyInspector', (jsonObj) => receivedDataFromPlugin(jsonObj));
+
+		function receivedDataFromPlugin(jsonObj) {
+			// console.log('receivedDataFromPlugin: ', jsonObj);
+			if (jsonObj && jsonObj.payload) {
+				if (jsonObj.payload.hasOwnProperty('message') && jsonObj.payload.hasOwnProperty('type')) {
+					showMessage(jsonObj.payload['message'], jsonObj.payload['type']);
+				}
+			}
+		}
+
+		function connected(jsonObj) {
+            uuid = jsonObj.uuid;
+            actionInfo = jsonObj.actionInfo.action;
+            ctx = jsonObj.actionInfo.context;
+        }
+
+        function startRequest(param) {
+            if ($SD && $SD.connection) {
+                let payload = {};
+                if (param) {
+                    payload[param] = param;
+
+					if ($.trim($('#profile-id').val()).length === 0) {
+						showMessage('Error: Profile ID cannot be null', MESSAGE_TYPE.INVALID);
+						return;
+					}
+                    if ($.trim($('#refresh-token').val()).length === 0) {
+                        showMessage('Error: Refresh token cannot be null', MESSAGE_TYPE.INVALID);
+                        return;
+					}
+					if ($.trim($('#client-id').val()).length === 0) {
+                        showMessage('Error: Client ID cannot be null', MESSAGE_TYPE.INVALID);
+						return;
+                    }
+					if ($.trim($('#client-secret').val()).length === 0) {
+                        showMessage('Error: Client secret cannot be null', MESSAGE_TYPE.INVALID);
+                        return;
+					}
+					if (!($.isNumeric($('#set-interval').val())) || $('#set-interval').val() < 1) {
+                        showMessage('Error: Interval must be a positive number', MESSAGE_TYPE.INVALID);
+						return;
+                    }
+
+					payload['profileId'] = $.trim($('#profile-id').val())
+                    payload['refreshToken'] = $.trim($('#refresh-token').val());
+                    payload['clientId'] = $.trim($('#client-id').val());
+                    payload['clientSecret'] = $.trim($('#client-secret').val());
+                    payload['interval'] =  interval = $('#set-interval').val() * TO_SECOND;
+                    payload['metric'] = $('#set-metric').val();
+                }
+                clearTimer();
+                $SD.api.sendToPlugin(uuid, actionInfo, payload);
+            }
+        }
+
+        function stopRequest(param) {
+            if ($SD && $SD.connection) {
+                var payload = {};
+                if (param) {
+                    payload[param] = param;
+                }
+				clearTimer();
+                $SD.api.sendToPlugin(uuid, actionInfo, payload);
+            }
+		}
+
+        function showMessage(message, type) {
+            let msgHtml = '';
+            switch (type) {
+				case MESSAGE_TYPE.VALID:
+					msgHtml = '<div class="message" style="color:lightgreen">' + message + '</div>';
+					$('.message').replaceWith(msgHtml);
+					break;
+
+				case MESSAGE_TYPE.INVALID:
+					msgHtml = '<div class="message" style="color:tomato">' + message + '</div>';
+					$('.message').replaceWith(msgHtml);
+					break;
+
+				case MESSAGE_TYPE.COUNT_DOWN:
+					let countDown = (interval/TO_SECOND) - 1;
+					let countDownTimer = setInterval(function () {
+						msgHtml = '<div class="message" style="color:lightgreen">' + message + countDown + 's</div>';
+						$('.message').replaceWith(msgHtml);
+						countDown--;
+					}, TO_SECOND);
+
+					timers.push(countDownTimer);
+					setTimeout(function(){
+						clearInterval(countDownTimer);
+					}, countDown * TO_SECOND);
+					break;
+			}
+        }
+
+        function clearTimer() {
+			timers.forEach(timer => {
+				clearInterval(timer);
+			});
+			timers = [];
+		}
+
+	</script>
+
+</body>
+
+</html>

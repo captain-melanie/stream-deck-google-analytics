@@ -1,0 +1,18 @@
+{
+  "Description": "Show Google Analytics real time data.",
+  "Name": "Google Analytics Real Time",
+  "com.mel.googleanalytics.action": {
+    "Name": "Google Analytics Real Time",
+    "Tooltip": "Show Google Analytics real time data"
+  },
+  
+  "Localization": {
+      "Face": "Face",
+      "Black" : "Black",
+      "Blue" : "Blue",
+      "Blueish" : "Blueish",
+      "Green" : "Green",
+      "Red": "Red",
+      "White": "White"
+  }
+}
