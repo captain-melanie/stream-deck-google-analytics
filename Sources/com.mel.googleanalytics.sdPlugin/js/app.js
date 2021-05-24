@@ -90,7 +90,6 @@ function GARealtime() {
     function startRequest(payload) {
         stopRequest();
 
-        // console.log('Start Requesting...');
         // Grant access, fetch API and set an interval of 1 hour
         getData(payload);
 
@@ -109,7 +108,6 @@ function GARealtime() {
         timers = [];
 
         action.sendToPropertyInspector(getMessage('Connection terminated', MESSAGE_TYPE.VALID));
-        // console.log('Stop Requesting...');
     }
 
     function getData(payload) {
@@ -162,6 +160,10 @@ function GARealtime() {
     }
 
     function accessData(accessToken, payload) {
+        if (payload['metric'] === 'goalXXCompletions') {
+            payload['metric'] = 'goal' + payload['goalCompletionNum'] + 'Completions';
+        }
+
         $.ajax({
             url: URL_TO_GET_DATA,
             data: {
@@ -177,7 +179,7 @@ function GARealtime() {
 
             let requestedParam = data = response['totalsForAllResults']['rt:' + payload['metric']];      // This field should be changed if more metric options available
             action.setTitle(requestedParam);
-            // console.log('Set value to ' + requestedParam + ' with access token ' + accessToken);
+            console.log('Set value to ' + requestedParam + ' with access token ' + accessToken);
         }).fail(function (response) {
             action.sendToPropertyInspector(getMessage('Failed to fetch a quote. Please check your keys.', MESSAGE_TYPE.INVALID));
         })

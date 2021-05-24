@@ -39,9 +39,16 @@
 
 		<div class="sdpi-item">
 			<div class="sdpi-item-label">Set Metric</div>
-			<select class="sdpi-item-value select" id="set-metric" required>
+			<select class="sdpi-item-value select" id="set-metric" required onchange="toggleAdditionalFields()">
 				<option value="activeUsers">Active Users</option>
+				<option value="totalEvents">Total Events</option>
+				<option value="goalXXCompletions">Goal Completions</option>
+				<option value="goalCompletionsAll">All Goal Completions</option>
 			</select>
+		</div>
+		<div class="sdpi-item" style="display: none;" id="goal-xx-completions">
+			<div class="sdpi-item-label">Goal number: </div>
+			<input id="goal-comp-num" class="sdpi-item-value" placeholder="Between 1 - 20" />
 		</div>
 
 		<!-- background -->
@@ -73,7 +80,6 @@
 		$SD.on('sendToPropertyInspector', (jsonObj) => receivedDataFromPlugin(jsonObj));
 
 		function receivedDataFromPlugin(jsonObj) {
-			// console.log('receivedDataFromPlugin: ', jsonObj);
 			if (jsonObj && jsonObj.payload) {
 				if (jsonObj.payload.hasOwnProperty('message') && jsonObj.payload.hasOwnProperty('type')) {
 					showMessage(jsonObj.payload['message'], jsonObj.payload['type']);
@@ -120,6 +126,7 @@
                     payload['clientSecret'] = $.trim($('#client-secret').val());
                     payload['interval'] =  interval = $('#set-interval').val() * TO_SECOND;
                     payload['metric'] = $('#set-metric').val();
+                    payload['goalCompletionNum'] = $('#goal-comp-num').val();
                 }
                 clearTimer();
                 $SD.api.sendToPlugin(uuid, actionInfo, payload);
@@ -171,6 +178,13 @@
 				clearInterval(timer);
 			});
 			timers = [];
+		}
+
+		function toggleAdditionalFields() {
+			console.log($('#goal-comp-num').val());
+			$('#set-metric').val() === 'goalXXCompletions'
+					? $('#goal-xx-completions').css('display', 'flex')
+					: $('#goal-xx-completions').css('display', 'none');
 		}
 
 	</script>
