@@ -47,18 +47,16 @@ var action = {
     },
 
     onSendToPlugin: function (jsn) {
-        if (!jsn.payload) return;
+        if (!jsn.payload) {
+            return;
+        }
         const gaRealtime = this.getContextFromCache('gaReamtimeInstance');
 
         if (jsn.payload.hasOwnProperty('startRequest')) {
-            if (gaRealtime) {
-                gaRealtime.startRequest(jsn.payload);
-            }
+            gaRealtime && gaRealtime.startRequest(jsn.payload);
         }
         else if (jsn.payload.hasOwnProperty('stopRequest')) {
-            if (gaRealtime) {
-                gaRealtime.stopRequest();
-            }
+            gaRealtime && gaRealtime.stopRequest();
         }
     },
 
@@ -85,17 +83,16 @@ function GARealtime() {
             COUNT_DOWN: 'count down',
         });
 
-    let timers = [], data = 0, initialRequest = true;
+    let timers = [], data = 0;
 
     function startRequest(payload) {
         stopRequest();
 
-        // console.log('Start Requesting...');
         // Grant access, fetch API and set an interval of 1 hour
         getData(payload);
 
         // Refresh token every hour, infinitely
-        let timerToGetData = setInterval(function () {
+        const timerToGetData = setInterval(function () {
             getData(payload);
         }, TOKEN_TIMEOUT);
 
@@ -109,13 +106,11 @@ function GARealtime() {
         timers = [];
 
         action.sendToPropertyInspector(getMessage('Connection terminated', MESSAGE_TYPE.VALID));
-        // console.log('Stop Requesting...');
     }
 
     function getData(payload) {
-        let jqxhrFromGrantAccess = grantAccessByKeys(payload);
-        const interval = payload['interval'],
-              metric = payload['metric'];
+        const jqxhrFromGrantAccess = grantAccessByKeys(payload);
+        const interval = payload['interval'];
 
         // Get token when access granted
         $.when(jqxhrFromGrantAccess).done(function (response) {
@@ -125,7 +120,7 @@ function GARealtime() {
             accessData(accessToken, payload);
 
             // Set up a timer to fetch every [INTERVAL] seconds until token expires
-            let timerToFetchData = setInterval(function () {
+            const timerToFetchData = setInterval(function () {
                 accessData(accessToken, payload);
             }, interval);
 
@@ -134,7 +129,7 @@ function GARealtime() {
             // Stop the call after token expires
             setTimeout(function(){
                 clearInterval(timerToFetchData);
-            }, TOKEN_TIMEOUT - interval);            // Need to -interval because the initial call is not within the timer
+            }, TOKEN_TIMEOUT - interval);
         })
     }
 
@@ -143,7 +138,7 @@ function GARealtime() {
             CLIENT_ID = payload['clientId'],
             CLIENT_SECRET = payload['clientSecret'];
 
-        let jqxhr = $.post(URL_TO_GET_ACCESS_TOKEN, {
+        const jqxhr = $.post(URL_TO_GET_ACCESS_TOKEN, {
                 grant_type: 'refresh_token',
                 refresh_token: REFRESH_TOKEN,
                 client_id: CLIENT_ID,
@@ -162,6 +157,10 @@ function GARealtime() {
     }
 
     function accessData(accessToken, payload) {
+        if (payload['metric'] === 'goalXXCompletions') {
+            payload['metric'] = 'goal' + payload['goalCompletionNum'] + 'Completions';
+        }
+
         $.ajax({
             url: URL_TO_GET_DATA,
             data: {
@@ -175,9 +174,8 @@ function GARealtime() {
         }).done(function(response) {
             action.sendToPropertyInspector(getMessage('Connection established. Refresh metric in ', MESSAGE_TYPE.COUNT_DOWN));
 
-            let requestedParam = data = response['totalsForAllResults']['rt:' + payload['metric']];      // This field should be changed if more metric options available
+            const requestedParam = data = response['totalsForAllResults']['rt:' + payload['metric']];
             action.setTitle(requestedParam);
-            // console.log('Set value to ' + requestedParam + ' with access token ' + accessToken);
         }).fail(function (response) {
             action.sendToPropertyInspector(getMessage('Failed to fetch a quote. Please check your keys.', MESSAGE_TYPE.INVALID));
         })
